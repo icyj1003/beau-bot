@@ -515,7 +515,7 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
 
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Phimmoiz.net"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Phimmoiz.net | prefix !"))
     print("Bot is ready!")
 
 setup(bot)
