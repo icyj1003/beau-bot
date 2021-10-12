@@ -298,7 +298,7 @@ class Music(commands.Cog):
                               color=discord.Color.green())
         await ctx.send(embed=embed)
 
-    @commands.command(name='resume', description="resumes music")
+    @commands.command(name='resume', aliases=['tiếp'], description="resumes music")
     async def resume_(self, ctx):
         """Resume the currently paused song."""
         vc = ctx.voice_client
