@@ -217,7 +217,7 @@ class Music(commands.Cog):
 
         return player
 
-    @commands.command(name='join', aliases=['connect', 'j', 'go'], description="connects to voice")
+    @commands.command(name='join', aliases=['connect', 'j', 'go', 'zo', 'vô'], description="connects to voice")
     async def connect_(self, ctx, *, channel: discord.VoiceChannel = None):
         """Connect to voice.
         Parameters
@@ -256,7 +256,7 @@ class Music(commands.Cog):
                               color=discord.Color.green())
         await ctx.send(embed=embed)
 
-    @commands.command(name='play', aliases=['sing', 'p'], description="streams music")
+    @commands.command(name='play', aliases=['sing', 'p', 'phát', 'hát'], description="streams music")
     async def play_(self, ctx, *, search: str):
         """Request a song and add it to the queue.
         This command attempts to join a valid voice channel if the bot is not already in one.
@@ -281,7 +281,7 @@ class Music(commands.Cog):
 
         await player.queue.put(source)
 
-    @commands.command(name='pause', description="pauses music")
+    @commands.command(name='pause', aliases=['dừng'], description="pauses music")
     async def pause_(self, ctx):
         """Pause the currently playing song."""
         vc = ctx.voice_client
@@ -321,7 +321,7 @@ class Music(commands.Cog):
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
-            embed = discord.Embed(title="", description="Rồi hát ai nghe?",
+            embed = discord.Embed(title="", description="Skip cái gì?",
                                   color=discord.Color.green())
             return await ctx.send(embed=embed)
 
@@ -332,7 +332,7 @@ class Music(commands.Cog):
 
         vc.stop()
 
-    @commands.command(name='remove', aliases=['rm', 'rem'], description="removes specified song from queue")
+    @commands.command(name='remove', aliases=['rm', 'rem' ,'bỏ số', 'bỏ bài số'], description="removes specified song from queue")
     async def remove_(self, ctx, pos: int = None):
         """Removes specified song from queue"""
 
@@ -485,7 +485,7 @@ class Music(commands.Cog):
                               color=discord.Color.green())
         await ctx.send(embed=embed)
 
-    @commands.command(name='leave', aliases=["stop", "dc", "disconnect", "bye"],
+    @commands.command(name='leave', aliases=["stop", "dc", "disconnect", "bye", 'ra', 'đi'],
                       description="stops music and disconnects from voice")
     async def leave_(self, ctx):
         """Stop the currently playing song and destroy the player.
