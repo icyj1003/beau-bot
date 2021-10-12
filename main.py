@@ -393,7 +393,7 @@ class Music(commands.Cog):
 
         player = self.get_player(ctx)
         if player.queue.empty():
-            embed = discord.Embed(title="", description="queue is empty", color=discord.Color.green())
+            embed = discord.Embed(title="", description="Trống lơ trống lốc", color=discord.Color.green())
             return await ctx.send(embed=embed)
 
         seconds = vc.source.duration % (24 * 3600)
@@ -471,7 +471,7 @@ class Music(commands.Cog):
             return await ctx.send(embed=embed)
 
         if not 0 < vol < 101:
-            embed = discord.Embed(title="", description="Please enter a value between 1 and 100",
+            embed = discord.Embed(title="", description="Nhập vào từ 1 đến 100 nhé!",
                                   color=discord.Color.green())
             return await ctx.send(embed=embed)
 
@@ -481,7 +481,7 @@ class Music(commands.Cog):
             vc.source.volume = vol / 100
 
         player.volume = vol / 100
-        embed = discord.Embed(title="", description=f'**`{ctx.author}`** set the volume to **{vol}%**',
+        embed = discord.Embed(title="", description=f'Đã chỉnh âm lượng về {vol}%**',
                               color=discord.Color.green())
         await ctx.send(embed=embed)
 
