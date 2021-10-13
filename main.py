@@ -332,7 +332,8 @@ class Music(commands.Cog):
 
         vc.stop()
 
-    @commands.command(name='remove', aliases=['rm', 'rem' ,'bỏ số', 'bỏ bài số'], description="removes specified song from queue")
+    @commands.command(name='remove', aliases=['rm', 'rem', 'bỏ số', 'bỏ bài số'],
+                      description="removes specified song from queue")
     async def remove_(self, ctx, pos: int = None):
         """Removes specified song from queue"""
 
@@ -447,10 +448,10 @@ class Music(commands.Cog):
         embed = discord.Embed(title="",
                               description=f"[{vc.source.title}]({vc.source.web_url}) [{vc.source.requester.mention}] | `{duration}`",
                               color=discord.Color.green())
-        embed.set_author(icon_url=self.bot.user.avatar_url, name=f"Now Playing 🎶")
+        embed.set_author(icon_url=self.bot.user.avatar_url, name=f"Đang phát 🎶")
         await ctx.send(embed=embed)
 
-    @commands.command(name='volume', aliases=['vol', 'v'], description="changes Kermit's volume")
+    @commands.command(name='volume', aliases=['vol', 'v'], description="thay đổi âm lượng")
     async def change_volume(self, ctx, *, vol: float = None):
         """Change the player volume.
         Parameters
@@ -466,7 +467,7 @@ class Music(commands.Cog):
             return await ctx.send(embed=embed)
 
         if not vol:
-            embed = discord.Embed(title="", description=f"🔊 **{(vc.source.volume) * 100}%**",
+            embed = discord.Embed(title="", description=f"🔊 {(vc.source.volume) * 100}%",
                                   color=discord.Color.green())
             return await ctx.send(embed=embed)
 
@@ -486,7 +487,7 @@ class Music(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name='leave', aliases=["stop", "dc", "disconnect", "bye", 'ra', 'đi'],
-                      description="stops music and disconnects from voice")
+                      description="ngừng phát nhạc và ngắt kết nối room")
     async def leave_(self, ctx):
         """Stop the currently playing song and destroy the player.
         !Warning!
@@ -510,13 +511,15 @@ def setup(bot):
 
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
-                   description='Relatively simple music bot example')
+                   description='Các lệnh cơ bản')
 
 
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Phimmoiz.net | prefix !"))
+    await bot.change_presence(
+        activity=discord.Activity(type=discord.ActivityType.watching, name="Phimmoiz.net | prefix !"))
     print("Bot is ready!")
+
 
 setup(bot)
 bot.run('NjgzNjQ2MzE4MzE2NjE3NzU4.XlulPw.-QkAf8zThOuGrRshnYOVFPxc61E')  # tâm
