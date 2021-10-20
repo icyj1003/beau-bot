@@ -154,6 +154,7 @@ class MusicPlayer:
                                   description=f"[{source.title}]({source.web_url}) [{source.requester.mention}]",
                                   color=discord.Color.green())
             self.np = await self._channel.send(embed=embed)
+            await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=source.title))
             await self.next.wait()
 
             # Make sure the FFmpeg process is cleaned up.
