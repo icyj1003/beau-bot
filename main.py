@@ -9,6 +9,7 @@ from async_timeout import timeout
 from functools import partial
 import youtube_dl
 from youtube_dl import YoutubeDL
+import lyricsgenius
 
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
@@ -75,7 +76,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         embed = discord.Embed(title="",
                               description=f"Đã thêm [{data['title']}]({data['webpage_url']}) [{ctx.author.mention}]",
-                              color=discord.Color.green())
+                              color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
         if download:
@@ -152,9 +153,8 @@ class MusicPlayer:
             self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
             embed = discord.Embed(title="Đang phát",
                                   description=f"[{source.title}]({source.web_url}) [{source.requester.mention}]",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             self.np = await self._channel.send(embed=embed)
-            await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=source.title))
             await self.next.wait()
 
             # Make sure the FFmpeg process is cleaned up.
@@ -234,7 +234,7 @@ class Music(commands.Cog):
             except AttributeError:
                 embed = discord.Embed(title="",
                                       description="Rồi vô đâu cơ?",
-                                      color=discord.Color.green())
+                                      color=discord.Color.from_rgb(255, 165, 158))
                 await ctx.send(embed=embed)
                 raise InvalidVoiceChannel('No channel to join. Please either specify a valid channel or join one.')
 
@@ -254,7 +254,7 @@ class Music(commands.Cog):
                 raise VoiceConnectionError(f'Connecting to channel: <{channel}> timed out.')
         embed = discord.Embed(title="",
                               description=f"Vô {channel} rồi nhá! ( づ￣ ³￣ )づ",
-                              color=discord.Color.green())
+                              color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
     @commands.command(name='play', aliases=['sing', 'p', 'phát', 'hát'], description="streams music")
@@ -289,14 +289,14 @@ class Music(commands.Cog):
 
         if not vc or not vc.is_playing():
             embed = discord.Embed(title="", description="Có phát bài nào đâu mà đòi dừng? (｡･･｡)",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
         elif vc.is_paused():
             return
 
         vc.pause()
         embed = discord.Embed(title="", description="Dừng thì dừng (｡･･｡)",
-                              color=discord.Color.green())
+                              color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
     @commands.command(name='resume', aliases=['tiếp'], description="resumes music")
@@ -306,14 +306,14 @@ class Music(commands.Cog):
 
         if not vc or not vc.is_connected():
             embed = discord.Embed(title="", description="Rồi ai nghe?",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
         elif not vc.is_paused():
             return
 
         vc.resume()
         embed = discord.Embed(title="", description="Tiếp tiếp tiếp ( ✿◠‿◠ )",
-                              color=discord.Color.green())
+                              color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
     @commands.command(name='skip', description="skips to next song in queue")
@@ -323,7 +323,7 @@ class Music(commands.Cog):
 
         if not vc or not vc.is_connected():
             embed = discord.Embed(title="", description="Skip cái gì?",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         if vc.is_paused():
@@ -342,7 +342,7 @@ class Music(commands.Cog):
 
         if not vc or not vc.is_connected():
             embed = discord.Embed(title="", description="Rồi xoá cái gì?",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         player = self.get_player(ctx)
@@ -351,7 +351,7 @@ class Music(commands.Cog):
                 player.queue._queue.pop()
             except IndexError:
                 embed = discord.Embed(title="", description=f'Làm gì còn bài nào (⁄ ⁄•⁄ω⁄•⁄ ⁄)⁄',
-                                      color=discord.Color.green())
+                                      color=discord.Color.from_rgb(255, 165, 158))
                 await ctx.send(embed=embed)
         else:
             try:
@@ -359,11 +359,11 @@ class Music(commands.Cog):
                 del player.queue._queue[pos - 1]
                 embed = discord.Embed(title="",
                                       description=f"Đã xoá [{s['title']}]({s['webpage_url']}) [{s['requester'].mention}] ra khỏi hàng chờ ฅ^•ﻌ•^ฅ...",
-                                      color=discord.Color.green())
+                                      color=discord.Color.from_rgb(255, 165, 158))
                 await ctx.send(embed=embed)
             except:
                 embed = discord.Embed(title="", description=f'Làm gì có bài nào số {pos} (⁄ ⁄•⁄ω⁄•⁄ ⁄)⁄',
-                                      color=discord.Color.green())
+                                      color=discord.Color.from_rgb(255, 165, 158))
                 await ctx.send(embed=embed)
 
     @commands.command(name='clear', aliases=['clr', 'cl', 'cr'], description="clears entire queue")
@@ -374,13 +374,13 @@ class Music(commands.Cog):
 
         if not vc or not vc.is_connected():
             embed = discord.Embed(title="", description="Dùng lệnh join đi nào! ( つ´∀｀)つ ",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         player = self.get_player(ctx)
         player.queue._queue.clear()
         embed = discord.Embed(title="", description="Dọn hàng chờ sạch sẽ ròi nhá ( >ω<)",
-                              color=discord.Color.green())
+                              color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
     @commands.command(name='queue', aliases=['q', 'playlist', 'que'], description="shows the queue")
@@ -390,12 +390,13 @@ class Music(commands.Cog):
 
         if not vc or not vc.is_connected():
             embed = discord.Embed(title="", description="Dùng lệnh join đi nào! ( つ´∀｀)つ ",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         player = self.get_player(ctx)
         if player.queue.empty():
-            embed = discord.Embed(title="", description="Trống lơ trống lốc", color=discord.Color.green())
+            embed = discord.Embed(title="", description="Trống lơ trống lốc",
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         seconds = vc.source.duration % (24 * 3600)
@@ -411,10 +412,11 @@ class Music(commands.Cog):
         # Grabs the songs in the queue...
         upcoming = list(itertools.islice(player.queue._queue, 0, int(len(player.queue._queue))))
         fmt = '\n'.join(
-            f"`{(upcoming.index(_)) + 1}.` [{_['title']}]({_['webpage_url']}) | ` {duration} Requested by: {_['requester']}`\n"
+            f"`{(upcoming.index(_)) + 1}.` [{_['title']}]({_['webpage_url']}) | `Thêm bởi: {_['requester']}`\n"
             for _ in upcoming)
-        fmt = f"\n__Đang phát__:\n[{vc.source.title}]({vc.source.web_url}) | ` {duration} Thêm bởi: {vc.source.requester}`\n\n__Tiếp theo:__\n" + fmt + f"\n**{len(upcoming)} bài nữa trong hàng chờ**"
-        embed = discord.Embed(title=f'Hàng chờ cho {ctx.guild.name}', description=fmt, color=discord.Color.green())
+        fmt = f"\n__Đang phát__:\n[{vc.source.title}]({vc.source.web_url}) | `{duration}` `Thêm bởi: {vc.source.requester}`\n\n__Tiếp theo:__\n" + fmt + f"\n**{len(upcoming)} bài nữa trong hàng chờ**"
+        embed = discord.Embed(title=f'Hàng chờ cho {ctx.guild.name}', description=fmt,
+                              color=discord.Color.from_rgb(255, 165, 158))
         embed.set_footer(text=f"{ctx.author.display_name}", icon_url=ctx.author.avatar_url)
 
         await ctx.send(embed=embed)
@@ -427,13 +429,13 @@ class Music(commands.Cog):
 
         if not vc or not vc.is_connected():
             embed = discord.Embed(title="", description="Dùng lệnh join đi nào! ( つ´∀｀)つ ",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         player = self.get_player(ctx)
         if not player.current:
             embed = discord.Embed(title="", description="Không có bài nào hết á ˖◛⁺ ⑅ ♡",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         seconds = vc.source.duration % (24 * 3600)
@@ -447,9 +449,9 @@ class Music(commands.Cog):
             duration = "%02dm %02ds" % (minutes, seconds)
 
         embed = discord.Embed(title="",
-                              description=f"[{vc.source.title}]({vc.source.web_url}) [{vc.source.requester.mention}] | `{duration}`",
-                              color=discord.Color.green())
-        embed.set_author(icon_url=self.bot.user.avatar_url, name=f"Đang phát 🎶")
+                              description=f"[{vc.source.title}]({vc.source.web_url}) | `{duration}` `Thêm bởi: {vc.source.requester.name}`",
+                              color=discord.Color.from_rgb(255, 165, 158))
+        embed.set_author(icon_url=self.bot.user.avatar_url, name=f"Đang phát")
         await ctx.send(embed=embed)
 
     @commands.command(name='volume', aliases=['vol', 'v'], description="thay đổi âm lượng")
@@ -464,17 +466,17 @@ class Music(commands.Cog):
 
         if not vc or not vc.is_connected():
             embed = discord.Embed(title="", description="Dùng lệnh join đi nào! ( つ´∀｀)つ ",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         if not vol:
             embed = discord.Embed(title="", description=f"🔊 {(vc.source.volume) * 100}%",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         if not 0 < vol < 101:
             embed = discord.Embed(title="", description="Nhập vào từ 1 đến 100 nhé!",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         player = self.get_player(ctx)
@@ -483,8 +485,8 @@ class Music(commands.Cog):
             vc.source.volume = vol / 100
 
         player.volume = vol / 100
-        embed = discord.Embed(title="", description=f'Đã chỉnh âm lượng về {vol}%**',
-                              color=discord.Color.green())
+        embed = discord.Embed(title="", description=f'Đã chỉnh âm lượng về {vol}%',
+                              color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
     @commands.command(name='leave', aliases=["stop", "dc", "disconnect", "bye", 'ra', 'đi'],
@@ -498,11 +500,11 @@ class Music(commands.Cog):
 
         if not vc or not vc.is_connected():
             embed = discord.Embed(title="", description="Dùng lệnh join đi nào! ( つ´∀｀)つ ",
-                                  color=discord.Color.green())
+                                  color=discord.Color.from_rgb(255, 165, 158))
             return await ctx.send(embed=embed)
 
         embed = discord.Embed(title="", description="Đi ngủ đây (⊃◜⌓◝⊂)",
-                              color=discord.Color.green())
+                              color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
         await self.cleanup(ctx.guild)
 
@@ -518,9 +520,23 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
 @bot.event
 async def on_ready():
     await bot.change_presence(
-        activity=discord.Activity(type=discord.ActivityType.watching, name="Phimmoiz.net | prefix !"))
+        activity=discord.Activity(type=discord.ActivityType.watching, name="Phimmoizz.net"))
     print("Bot is ready!")
 
 
+@bot.command(name='lyrics')
+async def lyrics_(ctx, *, search=None):
+    if search != None:
+        song = genius.search_song(title=search)
+        embed = discord.Embed(title=song.title, description=song.lyrics.replace('EmbedShare URLCopyEmbedCopy', ''),
+                              color=discord.Color.from_rgb(255, 165, 158))
+        await ctx.send(embed=embed)
+    else:
+        embed = discord.Embed(description='Nhập vô tên bài hát đi nào! ( つ´∀｀)つ ',
+                              color=discord.Color.from_rgb(255, 165, 158))
+        await ctx.send(embed=embed)
+
+
 setup(bot)
-bot.run('NjgzNjQ2MzE4MzE2NjE3NzU4.XlulPw.-QkAf8zThOuGrRshnYOVFPxc61E')  # tâm
+genius = lyricsgenius.Genius('nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
+bot.run('NjgzNjQ2MzE4MzE2NjE3NzU4.XlulPw.-QkAf8zThOuGrRshnYOVFPxc61E')
