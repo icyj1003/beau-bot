@@ -151,6 +151,7 @@ class MusicPlayer:
             self.current = source
 
             self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
+
             embed = discord.Embed(title="Đang phát",
                                   description=f"[{source.title}]({source.web_url}) [{source.requester.mention}]",
                                   color=discord.Color.from_rgb(255, 165, 158))
