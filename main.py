@@ -520,7 +520,7 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
 
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Pảo Chì 🛠️"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Phim sếch"))
     print("Bot is ready!")
 
 
