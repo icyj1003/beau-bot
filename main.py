@@ -1,3 +1,8 @@
+from tensorflow.keras.models import load_model, model_from_json
+import numpy as np
+from keras.preprocessing.sequence import pad_sequences
+from keras.preprocessing.text import Tokenizer
+import pickle as pkl
 import discord
 from discord.ext import commands
 import random
@@ -142,6 +147,7 @@ def is_valid_vietnam_word(word):
                 nguyen_am_index = index
     return True
 
+
 def chuan_hoa_dau_cau_tieng_viet(sentence):
     """
         Chuyển câu tiếng việt về chuẩn gõ dấu kiểu cũ.
@@ -151,12 +157,14 @@ def chuan_hoa_dau_cau_tieng_viet(sentence):
     sentence = sentence.lower()
     words = sentence.split()
     for index, word in enumerate(words):
-        cw = re.sub(r'(^\p{P}*)([p{L}.]*\p{L}+)(\p{P}*$)', r'\1/\2/\3', word).split('/')
+        cw = re.sub(r'(^\p{P}*)([p{L}.]*\p{L}+)(\p{P}*$)',
+                    r'\1/\2/\3', word).split('/')
         # print(cw)
         if len(cw) == 3:
             cw[1] = chuan_hoa_dau_tu_tieng_viet(cw[1])
         words[index] = ''.join(cw)
     return ' '.join(words)
+
 
 def text_preprocess(document):
     # chuẩn hóa unicode
@@ -168,12 +176,12 @@ def text_preprocess(document):
     # đưa về lower
     document = document.lower()
     # xóa các ký tự không cần thiết
-    document = re.sub(r'[^\s\wáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệóòỏõọôốồổỗộơớờởỡợíìỉĩịúùủũụưứừửữựýỳỷỹỵđ_]',' ',document)
+    document = re.sub(
+        r'[^\s\wáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệóòỏõọôốồổỗộơớờởỡợíìỉĩịúùủũụưứừửữựýỳỷỹỵđ_]', ' ', document)
     # xóa khoảng trắng thừa
     document = re.sub(r'\s+', ' ', document).strip()
     return document
 
-from tensorflow.keras.models import load_model, model_from_json
 
 def load_model(model_filename, model_weights_filename):
     with open(model_filename, 'r', encoding='utf8') as f:
@@ -181,13 +189,10 @@ def load_model(model_filename, model_weights_filename):
     model.load_weights(model_weights_filename)
     return model
 
+
 gen_encoder = load_model('encoder_model.json', 'encoder_model_weights.h5')
 gen_decoder = load_model('decoder_model.json', 'decoder_model_weights.h5')
 
-import pickle as pkl
-from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
-import numpy as np
 
 with open('q_tok.pkl', 'rb') as f:
     q_tok = pkl.load(f)
@@ -226,8 +231,9 @@ def generate_from_input(encoder_input):
 def tra_loi(text):
     q = text_preprocess(text).split()
     q = q_tok.texts_to_sequences([q])
-    q = pad_sequences(q, padding='post',maxlen=40)
+    q = pad_sequences(q, padding='post', maxlen=40)
     return generate_from_input(q)
+
 
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
@@ -311,7 +317,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
         requester = data['requester']
 
-        to_run = partial(ytdl.extract_info, url=data['webpage_url'], download=False)
+        to_run = partial(ytdl.extract_info,
+                         url=data['webpage_url'], download=False)
         data = await loop.run_in_executor(None, to_run)
 
         return cls(discord.FFmpegPCMAudio(data['url']), data=data, requester=requester)
@@ -324,7 +331,8 @@ class MusicPlayer:
     When the bot disconnects from the Voice it's instance will be destroyed.
     """
 
-    __slots__ = ('bot', '_guild', '_channel', '_cog', 'queue', 'next', 'current', 'np', 'volume')
+    __slots__ = ('bot', '_guild', '_channel', '_cog',
+                 'queue', 'next', 'current', 'np', 'volume')
 
     def __init__(self, ctx):
         self.bot = ctx.bot
@@ -368,7 +376,8 @@ class MusicPlayer:
             source.volume = self.volume
             self.current = source
 
-            self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
+            self._guild.voice_client.play(
+                source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
 
             embed = discord.Embed(title="Đang phát",
                                   description=f"[{source.title}]({source.web_url}) [{source.requester.mention}]",
@@ -424,8 +433,10 @@ class Music(commands.Cog):
             #                'Please make sure you are in a valid channel or provide me with one')
             return await ctx.send('Lỗi gì rồi (◕‿◕)')
 
-        print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+        print('Ignoring exception in command {}:'.format(
+            ctx.command), file=sys.stderr)
+        traceback.print_exception(
+            type(error), error, error.__traceback__, file=sys.stderr)
 
     def get_player(self, ctx):
         """Retrieve the guild player, or generate one."""
@@ -455,7 +466,8 @@ class Music(commands.Cog):
                                       description="Rồi vô đâu cơ?",
                                       color=discord.Color.from_rgb(255, 165, 158))
                 await ctx.send(embed=embed)
-                raise InvalidVoiceChannel('No channel to join. Please either specify a valid channel or join one.')
+                raise InvalidVoiceChannel(
+                    'No channel to join. Please either specify a valid channel or join one.')
 
         vc = ctx.voice_client
 
@@ -465,12 +477,14 @@ class Music(commands.Cog):
             try:
                 await vc.move_to(channel)
             except asyncio.TimeoutError:
-                raise VoiceConnectionError(f'Moving to channel: <{channel}> timed out.')
+                raise VoiceConnectionError(
+                    f'Moving to channel: <{channel}> timed out.')
         else:
             try:
                 await channel.connect()
             except asyncio.TimeoutError:
-                raise VoiceConnectionError(f'Connecting to channel: <{channel}> timed out.')
+                raise VoiceConnectionError(
+                    f'Connecting to channel: <{channel}> timed out.')
         embed = discord.Embed(title="",
                               description=f"Vô {channel} rồi nhá! ( づ￣ ³￣ )づ",
                               color=discord.Color.from_rgb(255, 165, 158))
@@ -629,14 +643,17 @@ class Music(commands.Cog):
             duration = "%02dm %02ds" % (minutes, seconds)
 
         # Grabs the songs in the queue...
-        upcoming = list(itertools.islice(player.queue._queue, 0, int(len(player.queue._queue))))
+        upcoming = list(itertools.islice(player.queue._queue,
+                        0, int(len(player.queue._queue))))
         fmt = '\n'.join(
             f"`{(upcoming.index(_)) + 1}.` [{_['title']}]({_['webpage_url']}) | `Thêm bởi: {_['requester']}`\n"
             for _ in upcoming)
-        fmt = f"\n__Đang phát__:\n[{vc.source.title}]({vc.source.web_url}) | `{duration}` `Thêm bởi: {vc.source.requester}`\n\n__Tiếp theo:__\n" + fmt + f"\n**{len(upcoming)} bài nữa trong hàng chờ**"
+        fmt = f"\n__Đang phát__:\n[{vc.source.title}]({vc.source.web_url}) | `{duration}` `Thêm bởi: {vc.source.requester}`\n\n__Tiếp theo:__\n" + \
+            fmt + f"\n**{len(upcoming)} bài nữa trong hàng chờ**"
         embed = discord.Embed(title=f'Hàng chờ cho {ctx.guild.name}', description=fmt,
                               color=discord.Color.from_rgb(255, 165, 158))
-        embed.set_footer(text=f"{ctx.author.display_name}", icon_url=ctx.author.avatar_url)
+        embed.set_footer(text=f"{ctx.author.display_name}",
+                         icon_url=ctx.author.avatar_url)
 
         await ctx.send(embed=embed)
 
@@ -741,11 +758,12 @@ async def on_ready():
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Phim sếch"))
     print("Bot is ready!")
 
+
 @bot.event
 async def on_message(message):
-    if message.content.find('Q:')!=-1:
-        await message.channel.send(tra_loi(message.content.replace('Q:',' ').strip()))
-
+    if message.content.find('Q:') != -1:
+        await message.channel.send(tra_loi(message.content.replace('Q:', ' ').strip()))
+# sửa
 
 
 @bot.command(name='lyrics')
@@ -762,5 +780,6 @@ async def lyrics_(ctx, *, search=None):
 
 
 setup(bot)
-genius = lyricsgenius.Genius('nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
+genius = lyricsgenius.Genius(
+    'nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
 bot.run('NjgzNjQ2MzE4MzE2NjE3NzU4.XlulPw.-QkAf8zThOuGrRshnYOVFPxc61E')
