@@ -93,7 +93,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
         requester = data['requester']
 
-        to_run = partial(ytdl.extract_info, url=data['webpage_url'], download=False)
+        to_run = partial(ytdl.extract_info,
+                         url=data['webpage_url'], download=False)
         data = await loop.run_in_executor(None, to_run)
 
         return cls(discord.FFmpegPCMAudio(data['url']), data=data, requester=requester)
@@ -106,7 +107,8 @@ class MusicPlayer:
     When the bot disconnects from the Voice it's instance will be destroyed.
     """
 
-    __slots__ = ('bot', '_guild', '_channel', '_cog', 'queue', 'next', 'current', 'np', 'volume')
+    __slots__ = ('bot', '_guild', '_channel', '_cog',
+                 'queue', 'next', 'current', 'np', 'volume')
 
     def __init__(self, ctx):
         self.bot = ctx.bot
@@ -132,7 +134,7 @@ class MusicPlayer:
 
             try:
                 # Wait for the next song. If we timeout cancel the player and disconnect...
-                async with timeout(300):  # 5 minutes...
+                async with timeout(1800):  # 5 minutes...
                     source = await self.queue.get()
             except asyncio.TimeoutError:
                 return self.destroy(self._guild)
@@ -150,7 +152,8 @@ class MusicPlayer:
             source.volume = self.volume
             self.current = source
 
-            self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
+            self._guild.voice_client.play(
+                source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
 
             embed = discord.Embed(title="Đang phát",
                                   description=f"[{source.title}]({source.web_url}) [{source.requester.mention}]",
@@ -206,8 +209,10 @@ class Music(commands.Cog):
             #                'Please make sure you are in a valid channel or provide me with one')
             return await ctx.send('Lỗi gì rồi (◕‿◕)')
 
-        print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+        print('Ignoring exception in command {}:'.format(
+            ctx.command), file=sys.stderr)
+        traceback.print_exception(
+            type(error), error, error.__traceback__, file=sys.stderr)
 
     def get_player(self, ctx):
         """Retrieve the guild player, or generate one."""
@@ -237,7 +242,8 @@ class Music(commands.Cog):
                                       description="Rồi vô đâu cơ?",
                                       color=discord.Color.from_rgb(255, 165, 158))
                 await ctx.send(embed=embed)
-                raise InvalidVoiceChannel('No channel to join. Please either specify a valid channel or join one.')
+                raise InvalidVoiceChannel(
+                    'No channel to join. Please either specify a valid channel or join one.')
 
         vc = ctx.voice_client
 
@@ -247,12 +253,14 @@ class Music(commands.Cog):
             try:
                 await vc.move_to(channel)
             except asyncio.TimeoutError:
-                raise VoiceConnectionError(f'Moving to channel: <{channel}> timed out.')
+                raise VoiceConnectionError(
+                    f'Moving to channel: <{channel}> timed out.')
         else:
             try:
                 await channel.connect()
             except asyncio.TimeoutError:
-                raise VoiceConnectionError(f'Connecting to channel: <{channel}> timed out.')
+                raise VoiceConnectionError(
+                    f'Connecting to channel: <{channel}> timed out.')
         embed = discord.Embed(title="",
                               description=f"Vô {channel} rồi nhá! ( づ￣ ³￣ )づ",
                               color=discord.Color.from_rgb(255, 165, 158))
@@ -411,14 +419,17 @@ class Music(commands.Cog):
             duration = "%02dm %02ds" % (minutes, seconds)
 
         # Grabs the songs in the queue...
-        upcoming = list(itertools.islice(player.queue._queue, 0, int(len(player.queue._queue))))
+        upcoming = list(itertools.islice(player.queue._queue,
+                        0, int(len(player.queue._queue))))
         fmt = '\n'.join(
             f"`{(upcoming.index(_)) + 1}.` [{_['title']}]({_['webpage_url']}) | `Thêm bởi: {_['requester']}`\n"
             for _ in upcoming)
-        fmt = f"\n__Đang phát__:\n[{vc.source.title}]({vc.source.web_url}) | `{duration}` `Thêm bởi: {vc.source.requester}`\n\n__Tiếp theo:__\n" + fmt + f"\n**{len(upcoming)} bài nữa trong hàng chờ**"
+        fmt = f"\n__Đang phát__:\n[{vc.source.title}]({vc.source.web_url}) | `{duration}` `Thêm bởi: {vc.source.requester}`\n\n__Tiếp theo:__\n" + \
+            fmt + f"\n**{len(upcoming)} bài nữa trong hàng chờ**"
         embed = discord.Embed(title=f'Hàng chờ cho {ctx.guild.name}', description=fmt,
                               color=discord.Color.from_rgb(255, 165, 158))
-        embed.set_footer(text=f"{ctx.author.display_name}", icon_url=ctx.author.avatar_url)
+        embed.set_footer(text=f"{ctx.author.display_name}",
+                         icon_url=ctx.author.avatar_url)
 
         await ctx.send(embed=embed)
 
@@ -520,7 +531,7 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
 
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Phim sếch"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Arcane"))
     print("Bot is ready!")
 
 
@@ -528,7 +539,7 @@ async def on_ready():
 async def lyrics_(ctx, *, search=None):
     if search != None:
         song = genius.search_song(title=search)
-        embed = discord.Embed(title=song.title, description=song.lyrics.replace('EmbedShare URLCopyEmbedCopy', ''),
+        embed = discord.Embed(title=song.title, description=song.lyrics.replace('EmbedShare URLCopyEmbedCopy', '').strip(),
                               color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
     else:
@@ -538,5 +549,6 @@ async def lyrics_(ctx, *, search=None):
 
 
 setup(bot)
-genius = lyricsgenius.Genius('nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
+genius = lyricsgenius.Genius(
+    'nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
 bot.run('NjgzNjQ2MzE4MzE2NjE3NzU4.XlulPw.-QkAf8zThOuGrRshnYOVFPxc61E')
