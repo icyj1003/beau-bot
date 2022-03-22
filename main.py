@@ -1,3 +1,5 @@
+from ast import alias
+from bs4 import BeautifulSoup
 import requests
 import discord
 from discord.ext import commands
@@ -109,7 +111,7 @@ class MusicPlayer:
     """
 
     __slots__ = ('bot', '_guild', '_channel', '_cog',
-                 'queue', 'next', 'current', 'np', 'volume')
+                 'queue', 'next', 'current', 'np', 'volume', 'clone', 'isloop')
 
     def __init__(self, ctx):
         self.bot = ctx.bot
@@ -123,6 +125,8 @@ class MusicPlayer:
         self.np = None  # Now playing message
         self.volume = .5
         self.current = None
+        self.clone = None
+        self.isloop = False
 
         ctx.bot.loop.create_task(self.player_loop())
 
@@ -135,8 +139,12 @@ class MusicPlayer:
 
             try:
                 # Wait for the next song. If we timeout cancel the player and disconnect...
-                async with timeout(1800):  # 5 minutes...
-                    source = await self.queue.get()
+                if self.isloop and self.clone:
+                    source = self.clone
+                else:
+                    async with timeout(1800):  # 5 minutes...
+                        source = await self.queue.get()
+                        self.clone = source
             except asyncio.TimeoutError:
                 return self.destroy(self._guild)
 
@@ -292,6 +300,20 @@ class Music(commands.Cog):
 
         await player.queue.put(source)
 
+    @commands.command(name='loop', aliases=['lặp', 'again', 'repeat'], description="loop current song")
+    async def loop_(self, ctx):
+        player = self.get_player(ctx)
+        embed = None
+        if player.isloop:
+            player.isloop = False
+            embed = discord.Embed(title="", description="Hết lặp rùi (⌐■_■)",
+                                  color=discord.Color.from_rgb(255, 165, 158))
+        else:
+            player.isloop = True
+            embed = discord.Embed(title="", description="Oki để lặp (⌐■_■)",
+                                  color=discord.Color.from_rgb(255, 165, 158))
+        await ctx.send(embed=embed)
+
     @commands.command(name='pause', aliases=['dừng'], description="pauses music")
     async def pause_(self, ctx):
         """Pause the currently playing song."""
@@ -427,8 +449,12 @@ class Music(commands.Cog):
             for _ in upcoming)
         fmt = f"\n__Đang phát__:\n[{vc.source.title}]({vc.source.web_url}) | `{duration}` `Thêm bởi: {vc.source.requester}`\n\n__Tiếp theo:__\n" + \
             fmt + f"\n**{len(upcoming)} bài nữa trong hàng chờ**"
-        embed = discord.Embed(title=f'Hàng chờ cho {ctx.guild.name}', description=fmt,
-                              color=discord.Color.from_rgb(255, 165, 158))
+        if player.isloop:
+            embed = discord.Embed(title=f'Hàng chờ cho {ctx.guild.name} - Loop', description=fmt,
+                                  color=discord.Color.from_rgb(255, 165, 158))
+        else:
+            embed = discord.Embed(title=f'Hàng chờ cho {ctx.guild.name}', description=fmt,
+                                  color=discord.Color.from_rgb(255, 165, 158))
         embed.set_footer(text=f"{ctx.author.display_name}",
                          icon_url=ctx.author.avatar_url)
 
@@ -553,7 +579,7 @@ async def on_ready():
 async def on_message(message):
     user = message.author
     if user.id != bot.user.id:
-        if message.content.find('cat') != -1:
+        if message.content.lower().find('cat') != -1 or message.content.lower().find('mew') != -1 or message.content.lower().find('meo') != -1 or message.content.lower().find('mèo') != -1:
             response = requests.get('https://aws.random.cat/meow')
             data = response.json()
             await message.reply(data['file'])
@@ -564,7 +590,7 @@ async def on_message(message):
 async def lyrics_(ctx, *, search=None):
     if search != None:
         song = genius.search_song(title=search)
-        embed = discord.Embed(title=song.title, description=song.lyrics.replace('EmbedShare URLCopyEmbedCopy', '').strip().strip('Embed'),
+        embed = discord.Embed(title=song.title, description=song.lyrics,
                               color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
     else:
@@ -572,6 +598,25 @@ async def lyrics_(ctx, *, search=None):
                               color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
+
+@bot.command(name='tft')
+async def tft_(ctx, champion: str):
+    url = 'https://app.mobalytics.gg/tft/champions/' + \
+        champion.replace(' ', '-')
+
+    page = requests.get(url)
+
+    soup = BeautifulSoup(page.content, 'html.parser')
+
+    results = soup.find_all('div', class_='m-lff1ls elh7uow9')
+    if len(results) != 0:
+        for item in results:
+            embed = discord.Embed(title=item.find(
+                'p', class_='m-zow6u1 elh7uow4').text)
+            embed.set_thumbnail(url=item.find('img').get('src'))
+            await ctx.send(embed=embed)
+    else:
+        await ctx.send(f'Có cc mà {champion}')
 
 setup(bot)
 genius = lyricsgenius.Genius(
