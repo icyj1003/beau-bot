@@ -1,3 +1,4 @@
+import requests
 import discord
 from discord.ext import commands
 import random
@@ -521,7 +522,20 @@ class Music(commands.Cog):
         await self.cleanup(ctx.guild)
 
 
+class Image(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command()
+    async def cat(self, ctx):
+        response = requests.get('https://aws.random.cat/meow')
+        data = response.json()
+        await ctx.send(data['file'])
+
+
 def setup(bot):
+    bot.add_cog(Image(bot))
     bot.add_cog(Music(bot))
 
 
@@ -535,11 +549,22 @@ async def on_ready():
     print("Bot is ready!")
 
 
+@bot.event
+async def on_message(message):
+    user = message.author
+    if user.id != bot.user.id:
+        if message.content.find('cat') != -1:
+            response = requests.get('https://aws.random.cat/meow')
+            data = response.json()
+            await message.reply(data['file'])
+    await bot.process_commands(message)
+
+
 @bot.command(name='lyrics')
 async def lyrics_(ctx, *, search=None):
     if search != None:
         song = genius.search_song(title=search)
-        embed = discord.Embed(title=song.title, description=song.lyrics.replace('EmbedShare URLCopyEmbedCopy', '').strip(),
+        embed = discord.Embed(title=song.title, description=song.lyrics.replace('EmbedShare URLCopyEmbedCopy', '').strip().strip('Embed'),
                               color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
     else:
