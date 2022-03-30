@@ -142,7 +142,7 @@ class MusicPlayer:
                 if self.isloop and self.clone:
                     source = self.clone
                 else:
-                    async with timeout(1800):  # 5 minutes...
+                    async with timeout(36000):  # 5 minutes...
                         source = await self.queue.get()
                         self.clone = source
             except asyncio.TimeoutError:
@@ -519,7 +519,6 @@ class Music(commands.Cog):
             return await ctx.send(embed=embed)
 
         player = self.get_player(ctx)
-
         if vc.source:
             vc.source.volume = vol / 100
 
@@ -578,11 +577,38 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     user = message.author
-    if user.id != bot.user.id:
+    if bot.user.mentioned_in(message):
+        split_msg = message.content.split()
+        msg = " ".join(split_msg[2:])
+        url = "https://waifu.p.rapidapi.com/path"
+
+        querystring = {"user_id": "sample_user_id", "message": msg, "from_name": user.name, "to_name": "Beau",
+                       "situation": "Beau is sad.", "translate_from": "auto", "translate_to": "vi"}
+
+        payload = {}
+        headers = {
+            "content-type": "application/json",
+            "X-RapidAPI-Host": "waifu.p.rapidapi.com",
+            "X-RapidAPI-Key": "05538da632msh57b74b23fca675ep1c21edjsneedba5588b8e"
+        }
+
+        response = requests.request(
+            "POST", url, json=payload, headers=headers, params=querystring)
+
+        if response.status_code == 200:
+            await message.channel.send(response.text)
+        else:
+            await message.channel.send(response.status_code)
+
+    elif user.id != bot.user.id:
         if message.content.lower().find('cat') != -1 or message.content.lower().find('mew') != -1 or message.content.lower().find('meo') != -1 or message.content.lower().find('mèo') != -1:
             response = requests.get('https://aws.random.cat/meow')
             data = response.json()
             await message.reply(data['file'])
+        elif message.content.lower().find('dog') != -1 or message.content.lower().find('chó') != -1:
+            response = requests.get('https://dog.ceo/api/breeds/image/random')
+            data = response.json()
+            await message.reply(data['message'])
     await bot.process_commands(message)
 
 
