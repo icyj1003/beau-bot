@@ -577,30 +577,8 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     user = message.author
-    if bot.user.mentioned_in(message):
-        split_msg = message.content.split()
-        msg = " ".join(split_msg[2:])
-        url = "https://waifu.p.rapidapi.com/path"
 
-        querystring = {"user_id": "sample_user_id", "message": msg, "from_name": user.name, "to_name": "Beau",
-                       "situation": "Beau is sad.", "translate_from": "auto", "translate_to": "vi"}
-
-        payload = {}
-        headers = {
-            "content-type": "application/json",
-            "X-RapidAPI-Host": "waifu.p.rapidapi.com",
-            "X-RapidAPI-Key": "05538da632msh57b74b23fca675ep1c21edjsneedba5588b8e"
-        }
-
-        response = requests.request(
-            "POST", url, json=payload, headers=headers, params=querystring)
-
-        if response.status_code == 200:
-            await message.channel.send(response.text)
-        else:
-            await message.channel.send(response.status_code)
-
-    elif user.id != bot.user.id:
+    if user.id != bot.user.id:
         if message.content.lower().find('cat') != -1 or message.content.lower().find('mew') != -1 or message.content.lower().find('meo') != -1 or message.content.lower().find('mèo') != -1:
             response = requests.get('https://aws.random.cat/meow')
             data = response.json()
