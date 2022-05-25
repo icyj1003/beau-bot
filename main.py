@@ -142,7 +142,7 @@ class MusicPlayer:
                 if self.isloop and self.clone:
                     source = self.clone
                 else:
-                    async with timeout(36000):  # 5 minutes...
+                    async with timeout(600):  # 10 minutes...
                         source = await self.queue.get()
                         self.clone = source
             except asyncio.TimeoutError:
@@ -233,15 +233,12 @@ class Music(commands.Cog):
 
         return player
 
-    @commands.command(name='join', aliases=['connect', 'j', 'go', 'zo', 'vô'], description="connects to voice")
+    @commands.command(name='join', aliases=['connect', 'j', 'go', 'zo', 'vô'], description="Kết nối voice")
     async def connect_(self, ctx, *, channel: discord.VoiceChannel = None):
-        """Connect to voice.
+        """Kết nối voice.
         Parameters
         ------------
-        channel: discord.VoiceChannel [Optional]
-            The channel to connect to. If a channel is not specified, an attempt to join the voice channel you are in
-            will be made.
-        This command also handles moving the bot to different channels.
+        Beau sẽ vô voice channel hiện tại của bạn.
         """
         if not channel:
             try:
@@ -252,7 +249,7 @@ class Music(commands.Cog):
                                       color=discord.Color.from_rgb(255, 165, 158))
                 await ctx.send(embed=embed)
                 raise InvalidVoiceChannel(
-                    'No channel to join. Please either specify a valid channel or join one.')
+                    'Rồi vô đâu cơ? Chẳng biết vô đâu')
 
         vc = ctx.voice_client
 
@@ -263,27 +260,25 @@ class Music(commands.Cog):
                 await vc.move_to(channel)
             except asyncio.TimeoutError:
                 raise VoiceConnectionError(
-                    f'Moving to channel: <{channel}> timed out.')
+                    f'<{channel}> timed out rùi neeee.')
         else:
             try:
                 await channel.connect()
             except asyncio.TimeoutError:
                 raise VoiceConnectionError(
-                    f'Connecting to channel: <{channel}> timed out.')
+                    f'<{channel}> timed out luôngggg.')
         embed = discord.Embed(title="",
                               description=f"Vô {channel} rồi nhá! ( づ￣ ³￣ )づ",
                               color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
-    @commands.command(name='play', aliases=['sing', 'p', 'phát', 'hát'], description="streams music")
+    @commands.command(name='play', aliases=['sing', 'p', 'phát', 'hát'], description="stream nhạc từ youtube")
     async def play_(self, ctx, *, search: str):
-        """Request a song and add it to the queue.
-        This command attempts to join a valid voice channel if the bot is not already in one.
-        Uses YTDL to automatically search and retrieve a song.
+        """Thêm một bài hát vào hàng đợi.
         Parameters
         ------------
-        search: str [Required]
-            The song to search and retrieve using YTDL. This could be a simple search, an ID or URL.
+        search: str
+            Tên bài hát, ID, hoặc URL
         """
         await ctx.trigger_typing()
 
@@ -300,7 +295,7 @@ class Music(commands.Cog):
 
         await player.queue.put(source)
 
-    @commands.command(name='loop', aliases=['lặp', 'again', 'repeat'], description="loop current song")
+    @commands.command(name='loop', aliases=['lặp', 'again', 'repeat'], description="lặp bài hát hiện tại")
     async def loop_(self, ctx):
         player = self.get_player(ctx)
         embed = None
@@ -314,9 +309,9 @@ class Music(commands.Cog):
                                   color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
-    @commands.command(name='pause', aliases=['dừng'], description="pauses music")
+    @commands.command(name='pause', aliases=['dừng'], description="dừng nhạc")
     async def pause_(self, ctx):
-        """Pause the currently playing song."""
+        """Tạm dừng bài hát đang phát."""
         vc = ctx.voice_client
 
         if not vc or not vc.is_playing():
@@ -331,9 +326,9 @@ class Music(commands.Cog):
                               color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
-    @commands.command(name='resume', aliases=['tiếp'], description="resumes music")
+    @commands.command(name='resume', aliases=['tiếp'], description="tiếp tục phát")
     async def resume_(self, ctx):
-        """Resume the currently paused song."""
+        """Tiếp tục phát bài hát đã dừng."""
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
@@ -348,9 +343,9 @@ class Music(commands.Cog):
                               color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
-    @commands.command(name='skip', description="skips to next song in queue")
+    @commands.command(name='skip', description="bỏ qua bài hiện tại")
     async def skip_(self, ctx):
-        """Skip the song."""
+        """Bỏ qua bài hát đang phát."""
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
@@ -366,9 +361,9 @@ class Music(commands.Cog):
         vc.stop()
 
     @commands.command(name='remove', aliases=['rm', 'rem', 'bỏ số', 'bỏ bài số'],
-                      description="removes specified song from queue")
+                      description="loại bỏ bài hất")
     async def remove_(self, ctx, pos: int = None):
-        """Removes specified song from queue"""
+        """Bỏ bài hát khỏi hàng chờ"""
 
         vc = ctx.voice_client
 
@@ -398,9 +393,9 @@ class Music(commands.Cog):
                                       color=discord.Color.from_rgb(255, 165, 158))
                 await ctx.send(embed=embed)
 
-    @commands.command(name='clear', aliases=['clr', 'cl', 'cr'], description="clears entire queue")
+    @commands.command(name='clear', aliases=['clr', 'cl', 'cr'], description="dọn dẹp hàng chờ")
     async def clear_(self, ctx):
-        """Deletes entire queue of upcoming songs."""
+        """Xoá hết toàn bộ hàng chờ."""
 
         vc = ctx.voice_client
 
@@ -415,9 +410,9 @@ class Music(commands.Cog):
                               color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
-    @commands.command(name='queue', aliases=['q', 'playlist', 'que'], description="shows the queue")
+    @commands.command(name='queue', aliases=['q', 'playlist', 'que'], description="xem hàng chờ")
     async def queue_info(self, ctx):
-        """Retrieve a basic queue of upcoming songs."""
+        """Xem hàng đợi hiện tại."""
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
@@ -450,10 +445,10 @@ class Music(commands.Cog):
         fmt = f"\n__Đang phát__:\n[{vc.source.title}]({vc.source.web_url}) | `{duration}` `Thêm bởi: {vc.source.requester}`\n\n__Tiếp theo:__\n" + \
             fmt + f"\n**{len(upcoming)} bài nữa trong hàng chờ**"
         if player.isloop:
-            embed = discord.Embed(title=f'Hàng chờ cho {ctx.guild.name} - Loop', description=fmt,
+            embed = discord.Embed(title=f'{ctx.guild.name} (Loop enable)', description=fmt,
                                   color=discord.Color.from_rgb(255, 165, 158))
         else:
-            embed = discord.Embed(title=f'Hàng chờ cho {ctx.guild.name}', description=fmt,
+            embed = discord.Embed(title=f'{ctx.guild.name}', description=fmt,
                                   color=discord.Color.from_rgb(255, 165, 158))
         embed.set_footer(text=f"{ctx.author.display_name}",
                          icon_url=ctx.author.avatar_url)
@@ -461,9 +456,9 @@ class Music(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name='np', aliases=['song', 'current', 'currentsong', 'playing'],
-                      description="shows the current playing song")
+                      description="bài hát đang phát")
     async def now_playing_(self, ctx):
-        """Display information about the currently playing song."""
+        """Xem thông tin bài hát đang phát."""
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
@@ -495,11 +490,11 @@ class Music(commands.Cog):
 
     @commands.command(name='volume', aliases=['vol', 'v'], description="thay đổi âm lượng")
     async def change_volume(self, ctx, *, vol: float = None):
-        """Change the player volume.
+        """Thay đổi âm lượng của Beau.
         Parameters
         ------------
-        volume: float or int [Required]
-            The volume to set the player to in percentage. This must be between 1 and 100.
+        volume: float or int
+            Phần trăm âm lượng
         """
         vc = ctx.voice_client
 
@@ -530,10 +525,7 @@ class Music(commands.Cog):
     @commands.command(name='leave', aliases=["stop", "dc", "disconnect", "bye", 'ra', 'đi'],
                       description="ngừng phát nhạc và ngắt kết nối room")
     async def leave_(self, ctx):
-        """Stop the currently playing song and destroy the player.
-        !Warning!
-            This will destroy the player assigned to your guild, also deleting any queued songs and settings.
-        """
+        """Dừng phát và huỷ hàng chờ."""
         vc = ctx.voice_client
 
         if not vc or not vc.is_connected():
@@ -554,9 +546,17 @@ class Image(commands.Cog):
 
     @commands.command()
     async def cat(self, ctx):
+        """Beau sẽ gửi cho bạn ảnh mèo cute."""
         response = requests.get('https://aws.random.cat/meow')
         data = response.json()
         await ctx.send(data['file'])
+
+    @commands.command()
+    async def dog(self, ctx):
+        """Beau sẽ gửi cho bạn ảnh chó khó ưa."""
+        response = requests.get('https://dog.ceo/api/breeds/image/random')
+        data = response.json()
+        await ctx.send(data['message'])
 
 
 def setup(bot):
@@ -570,28 +570,13 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
 
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Arcane"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Doctor Strange in the Multiverse of Madness"))
     print("Bot is ready!")
 
 
-@bot.event
-async def on_message(message):
-    user = message.author
-
-    if user.id != bot.user.id:
-        if message.content.lower().find('cat') != -1 or message.content.lower().find('mew') != -1 or message.content.lower().find('meo') != -1 or message.content.lower().find('mèo') != -1:
-            response = requests.get('https://aws.random.cat/meow')
-            data = response.json()
-            await message.reply(data['file'])
-        elif message.content.lower().find('dog') != -1 or message.content.lower().find('chó') != -1:
-            response = requests.get('https://dog.ceo/api/breeds/image/random')
-            data = response.json()
-            await message.reply(data['message'])
-    await bot.process_commands(message)
-
-
-@bot.command(name='lyrics')
+@bot.command(name='lyrics', description="lời bài hát")
 async def lyrics_(ctx, *, search=None):
+    """Tìm lời bài hát."""
     if search != None:
         song = genius.search_song(title=search)
         embed = discord.Embed(title=song.title, description=song.lyrics,
@@ -603,8 +588,9 @@ async def lyrics_(ctx, *, search=None):
         await ctx.send(embed=embed)
 
 
-@bot.command(name='tft')
+@bot.command(name='tft', description="lối lên trang bị ĐTCL")
 async def tft_(ctx, champion: str):
+    """Tra cứu lối lên trang bị ĐTCL."""
     url = 'https://app.mobalytics.gg/tft/champions/' + \
         champion.replace(' ', '-')
 
