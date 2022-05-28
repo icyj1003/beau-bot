@@ -1,9 +1,9 @@
-from ast import alias
 from bs4 import BeautifulSoup
 import requests
 import discord
 from discord.ext import commands
 import random
+from youtubesearchpython import VideosSearch
 import asyncio
 import itertools
 import sys
@@ -16,6 +16,9 @@ import lyricsgenius
 #
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
+
+genius = lyricsgenius.Genius(
+    'nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
 
 ytdlopts = {
     'format': 'bestaudio/best',
@@ -393,6 +396,32 @@ class Music(commands.Cog):
                                       color=discord.Color.from_rgb(255, 165, 158))
                 await ctx.send(embed=embed)
 
+    @commands.command(name='move', aliases=['swap'],
+                      description="Đổi vị trí")
+    async def move_(self, ctx, src: int = None, des: int = None):
+        """Đổi vị trí bài hát"""
+
+        vc = ctx.voice_client
+
+        if not vc or not vc.is_connected():
+            embed = discord.Embed(title="", description="Rồi xoá cái gì?",
+                                  color=discord.Color.from_rgb(255, 165, 158))
+            return await ctx.send(embed=embed)
+
+        player = self.get_player(ctx)
+        try:
+            s = player.queue._queue[src - 1]
+            player.queue._queue[src - 1] = player.queue._queue[des - 1]
+            player.queue._queue[des - 1] = s
+            embed = discord.Embed(title="",
+                                  description=f"Đã thay đổi vị trí bài {src} với bài {des}＼(ﾟｰﾟ＼)",
+                                  color=discord.Color.from_rgb(255, 165, 158))
+            await ctx.send(embed=embed)
+        except:
+            embed = discord.Embed(title="", description=f'Coi lại số thứ tự đi bạn (⁄ ⁄•⁄ω⁄•⁄ ⁄)⁄',
+                                  color=discord.Color.from_rgb(255, 165, 158))
+            await ctx.send(embed=embed)
+
     @commands.command(name='clear', aliases=['clr', 'cl', 'cr'], description="dọn dẹp hàng chờ")
     async def clear_(self, ctx):
         """Xoá hết toàn bộ hàng chờ."""
@@ -538,6 +567,74 @@ class Music(commands.Cog):
         await ctx.send(embed=embed)
         await self.cleanup(ctx.guild)
 
+    @commands.command(name='lyrics', description="lời bài hát")
+    async def lyrics_(self, ctx, *, search=None):
+        """Tìm lời bài hát."""
+        if search != None:
+            song = genius.search_song(title=search)
+            embed = discord.Embed(title=song.title, description=song.lyrics,
+                                  color=discord.Color.from_rgb(255, 165, 158))
+            await ctx.send(embed=embed)
+        else:
+            embed = discord.Embed(description='Nhập vô tên bài hát đi nào! ( つ´∀｀)つ ',
+                                  color=discord.Color.from_rgb(255, 165, 158))
+            await ctx.send(embed=embed)
+
+    @commands.command(name='search', description="tìm bài hát trên youtube")
+    async def search_(self, ctx, *, query=None):
+        """Tìm kiếm trên Youtube."""
+        if query != None:
+            from youtubesearchpython import VideosSearch
+
+            videosSearch = VideosSearch(query, limit=5).result()['result']
+
+            fmt = '\n'.join(
+                f"`{(videosSearch.index(_)) + 1}.` `{_['title'].replace('|', '-')}` | `{_['duration']}`"
+                for _ in videosSearch)
+            embed = discord.Embed(title=f'Kết quả tìm kiếm cho "{query}"', description=fmt,
+                                  color=discord.Color.from_rgb(255, 165, 158))
+            embed.set_footer(
+                text=f"Nhập vào lựa chọn của bạn (1-{len(videosSearch)} | 0 để huỷ):")
+
+            await ctx.send(embed=embed)
+
+            def check(m):
+                try:
+                    if 0 <= int(m.content) <= len(videosSearch):
+                        return True
+                    else:
+                        return False
+                except:
+                    return False
+
+            msg = await bot.wait_for("message", check=check)
+
+            if msg.content != '0':
+
+                await ctx.trigger_typing()
+
+                vc = ctx.voice_client
+
+                if not vc:
+                    await ctx.invoke(self.connect_)
+
+                player = self.get_player(ctx)
+
+                source = await YTDLSource.create_source(ctx, videosSearch[int(msg.content)-1]['id'], loop=self.bot.loop, download=False)
+
+                await player.queue.put(source)
+
+            else:
+
+                embed = discord.Embed(title="", description="Đã huỷ tìm kiếm (⊃◜⌓◝⊂)",
+                                      color=discord.Color.from_rgb(255, 165, 158))
+                await ctx.send(embed=embed)
+
+        else:
+            embed = discord.Embed(description='Nhập vô tên bài hát đi nào! ( つ´∀｀)つ ',
+                                  color=discord.Color.from_rgb(255, 165, 158))
+            await ctx.send(embed=embed)
+
 
 class Image(commands.Cog):
 
@@ -574,20 +671,6 @@ async def on_ready():
     print("Bot is ready!")
 
 
-@bot.command(name='lyrics', description="lời bài hát")
-async def lyrics_(ctx, *, search=None):
-    """Tìm lời bài hát."""
-    if search != None:
-        song = genius.search_song(title=search)
-        embed = discord.Embed(title=song.title, description=song.lyrics,
-                              color=discord.Color.from_rgb(255, 165, 158))
-        await ctx.send(embed=embed)
-    else:
-        embed = discord.Embed(description='Nhập vô tên bài hát đi nào! ( つ´∀｀)つ ',
-                              color=discord.Color.from_rgb(255, 165, 158))
-        await ctx.send(embed=embed)
-
-
 @bot.command(name='tft', description="lối lên trang bị ĐTCL")
 async def tft_(ctx, champion: str):
     """Tra cứu lối lên trang bị ĐTCL."""
@@ -609,6 +692,4 @@ async def tft_(ctx, champion: str):
         await ctx.send(f'Có cc mà {champion}')
 
 setup(bot)
-genius = lyricsgenius.Genius(
-    'nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
-bot.run('NjgzNjQ2MzE4MzE2NjE3NzU4.XlulPw.-QkAf8zThOuGrRshnYOVFPxc61E')
+bot.run('NjgzNjQ2MzE4MzE2NjE3NzU4.Gv7ha9.6RPmbxoISolSaFhyyv_mUW4EGqtet3vWLhFew8')
