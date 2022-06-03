@@ -1,3 +1,4 @@
+import sqlite3
 from bs4 import BeautifulSoup
 import requests
 import discord
@@ -13,9 +14,24 @@ from functools import partial
 import youtube_dl
 from youtube_dl import YoutubeDL
 import lyricsgenius
+from db import BeauPlDb
+
+
+def make_embed(text, title=""):
+    return discord.Embed(title=title,
+                         description=text,
+                         color=discord.Color.from_rgb(255, 165, 158))
+
+
 #
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
+
+#####################
+maintain_mode = True
+#####################
+
+db = BeauPlDb()
 
 genius = lyricsgenius.Genius(
     'nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
@@ -80,9 +96,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
             # take first item from a playlist
             data = data['entries'][0]
 
-        embed = discord.Embed(title="",
-                              description=f"Đã thêm [{data['title']}]({data['webpage_url']}) [{ctx.author.mention}]",
-                              color=discord.Color.from_rgb(255, 165, 158))
+        embed = make_embed(
+            f"Đã thêm [{data['title']}]({data['webpage_url']}) [{ctx.author.mention}]")
         await ctx.send(embed=embed)
 
         if download:
@@ -167,10 +182,7 @@ class MusicPlayer:
             self._guild.voice_client.play(
                 source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
 
-            embed = discord.Embed(title="Đang phát",
-                                  description=f"[{source.title}]({source.web_url}) [{source.requester.mention}]",
-                                  color=discord.Color.from_rgb(255, 165, 158))
-            self.np = await self._channel.send(embed=embed)
+            self.np = await self._channel.send(embed=make_embed(f"[{source.title}]({source.web_url}) [{source.requester.mention}]", title="Đang phát"))
             await self.next.wait()
 
             # Make sure the FFmpeg process is cleaned up.
@@ -247,10 +259,7 @@ class Music(commands.Cog):
             try:
                 channel = ctx.author.voice.channel
             except AttributeError:
-                embed = discord.Embed(title="",
-                                      description="Rồi vô đâu cơ?",
-                                      color=discord.Color.from_rgb(255, 165, 158))
-                await ctx.send(embed=embed)
+                await ctx.send(embed=make_embed("Rồi vô đâu cơ?"))
                 raise InvalidVoiceChannel(
                     'Rồi vô đâu cơ? Chẳng biết vô đâu')
 
@@ -270,10 +279,7 @@ class Music(commands.Cog):
             except asyncio.TimeoutError:
                 raise VoiceConnectionError(
                     f'<{channel}> timed out luôngggg.')
-        embed = discord.Embed(title="",
-                              description=f"Vô {channel} rồi nhá! ( づ￣ ³￣ )づ",
-                              color=discord.Color.from_rgb(255, 165, 158))
-        await ctx.send(embed=embed)
+        await ctx.send(embed=make_embed(f"Vô {channel} rồi nhá! ( づ￣ ³￣ )づ"))
 
     @commands.command(name='play', aliases=['sing', 'p', 'phát', 'hát'], description="stream nhạc từ youtube")
     async def play_(self, ctx, *, search: str):
@@ -304,12 +310,10 @@ class Music(commands.Cog):
         embed = None
         if player.isloop:
             player.isloop = False
-            embed = discord.Embed(title="", description="Hết lặp rùi (⌐■_■)",
-                                  color=discord.Color.from_rgb(255, 165, 158))
+            embed = make_embed("Hết lặp rùi (⌐■_■)")
         else:
             player.isloop = True
-            embed = discord.Embed(title="", description="Oki để lặp (⌐■_■)",
-                                  color=discord.Color.from_rgb(255, 165, 158))
+            embed = make_embed("Oki để lặp (⌐■_■)")
         await ctx.send(embed=embed)
 
     @commands.command(name='pause', aliases=['dừng'], description="dừng nhạc")
@@ -318,15 +322,13 @@ class Music(commands.Cog):
         vc = ctx.voice_client
 
         if not vc or not vc.is_playing():
-            embed = discord.Embed(title="", description="Có phát bài nào đâu mà đòi dừng? (｡･･｡)",
-                                  color=discord.Color.from_rgb(255, 165, 158))
+            embed = make_embed("Có phát bài nào đâu mà đòi dừng? (｡･･｡)")
             return await ctx.send(embed=embed)
         elif vc.is_paused():
             return
 
         vc.pause()
-        embed = discord.Embed(title="", description="Dừng thì dừng (｡･･｡)",
-                              color=discord.Color.from_rgb(255, 165, 158))
+        embed = make_embed("Dừng thì dừng (｡･･｡)")
         await ctx.send(embed=embed)
 
     @commands.command(name='resume', aliases=['tiếp'], description="tiếp tục phát")
@@ -439,7 +441,7 @@ class Music(commands.Cog):
                               color=discord.Color.from_rgb(255, 165, 158))
         await ctx.send(embed=embed)
 
-    @commands.command(name='queue', aliases=['q', 'playlist', 'que'], description="xem hàng chờ")
+    @commands.command(name='queue', aliases=['q', 'que'], description="xem hàng chờ")
     async def queue_info(self, ctx):
         """Xem hàng đợi hiện tại."""
         vc = ctx.voice_client
@@ -584,7 +586,6 @@ class Music(commands.Cog):
     async def search_(self, ctx, *, query=None):
         """Tìm kiếm trên Youtube."""
         if query != None:
-            from youtubesearchpython import VideosSearch
 
             videosSearch = VideosSearch(query, limit=5).result()['result']
 
@@ -607,7 +608,7 @@ class Music(commands.Cog):
                 except:
                     return False
 
-            msg = await bot.wait_for("message", check=check)
+            msg = await bot.wait_for("message", check=check, timeout=10)
 
             if msg.content != '0':
 
@@ -656,9 +657,68 @@ class Image(commands.Cog):
         await ctx.send(data['message'])
 
 
+class Game(commands.Cog):
+    @commands.command(name='tft', description="lối lên trang bị ĐTCL")
+    async def tft_(self, ctx, champion: str):
+        """Tra cứu lối lên trang bị ĐTCL."""
+        url = 'https://app.mobalytics.gg/tft/champions/' + \
+            champion.replace(' ', '-')
+
+        page = requests.get(url)
+
+        soup = BeautifulSoup(page.content, 'html.parser')
+
+        results = soup.find_all('div', class_='m-lff1ls elh7uow9')
+        if len(results) != 0:
+            for item in results:
+                embed = discord.Embed(title=item.find(
+                    'p', class_='m-zow6u1 elh7uow4').text)
+                embed.set_thumbnail(url=item.find('img').get('src'))
+                await ctx.send(embed=embed)
+        else:
+            await ctx.send(f'Có cc mà {champion}')
+
+
+class Playlist(commands.Cog):
+    @commands.command(name='playlist', aliases=['pl'], description="Thao tác Playlist")
+    async def playlist(self, ctx):
+        """Thao tác Playlist."""
+        pls = db.get_playlist(ctx.guild.id)
+        if pls:
+            fmt = '\n'.join(
+                f"`pid:{(_[0])}` `{_[1]}` | được `{_[-1]}` tạo ngày `{_[3]}`"
+                for _ in pls)
+            await ctx.send(embed=make_embed(fmt, title=f'Playlist đã tạo của {ctx.guild.name}'))
+
+        else:
+            await ctx.send(embed=make_embed('Ko có mẹ gì hết'))
+
+    @commands.command(name='playlist_add', aliases=['pladd'], description="Tạo playlist mới")
+    async def playlist_add(self, ctx, *, pname):
+        """Thêm playlist."""
+        status = db.add_playlist(pname, ctx.guild.id, ctx.author.name)
+        if status:
+            await ctx.send(embed=make_embed(f'Tạo "{pname}" rùi nhá'))
+        else:
+            await ctx.send(embed=make_embed('Lỗi mẹ nó rồi nhá'))
+
+    @commands.command(name='playlist_rm', aliases=['plrm'], description="Xoá playlist")
+    async def playlist_rm(self, ctx, *, pid):
+        """Xoá playlist."""
+        status = db.rm_playlist(pid)
+        if status:
+            await ctx.send(embed=make_embed(f'Đã xoá pid = {pid}"'))
+        else:
+            await ctx.send(embed=make_embed('Lỗi mẹ nó rồi nhá'))
+
+#############################################################################################
+
+
 def setup(bot):
     bot.add_cog(Image(bot))
     bot.add_cog(Music(bot))
+    bot.add_cog(Playlist(bot))
+    bot.add_cog(Game(bot))
 
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
@@ -667,29 +727,12 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
 
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Doctor Strange in the Multiverse of Madness"))
+    if maintain_mode:
+        await bot.change_presence(status=discord.Status.do_not_disturb, activity=discord.Activity(type=discord.ActivityType.listening, name="Đang nâng cấp :("))
+    else:
+        await bot.change_presence(status=discord.Status.online, activity=discord.Activity(type=discord.ActivityType.watching, name="Batman: Vengeance"))
     print("Bot is ready!")
 
-
-@bot.command(name='tft', description="lối lên trang bị ĐTCL")
-async def tft_(ctx, champion: str):
-    """Tra cứu lối lên trang bị ĐTCL."""
-    url = 'https://app.mobalytics.gg/tft/champions/' + \
-        champion.replace(' ', '-')
-
-    page = requests.get(url)
-
-    soup = BeautifulSoup(page.content, 'html.parser')
-
-    results = soup.find_all('div', class_='m-lff1ls elh7uow9')
-    if len(results) != 0:
-        for item in results:
-            embed = discord.Embed(title=item.find(
-                'p', class_='m-zow6u1 elh7uow4').text)
-            embed.set_thumbnail(url=item.find('img').get('src'))
-            await ctx.send(embed=embed)
-    else:
-        await ctx.send(f'Có cc mà {champion}')
 
 setup(bot)
 bot.run('NjgzNjQ2MzE4MzE2NjE3NzU4.Gv7ha9.6RPmbxoISolSaFhyyv_mUW4EGqtet3vWLhFew8')
