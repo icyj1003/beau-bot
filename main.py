@@ -1,9 +1,8 @@
-import sqlite3
 from bs4 import BeautifulSoup
 import requests
 import discord
 from discord.ext import commands
-import random
+import os
 from youtubesearchpython import VideosSearch
 import asyncio
 import itertools
@@ -11,10 +10,9 @@ import sys
 import traceback
 from async_timeout import timeout
 from functools import partial
-import youtube_dl
-from youtube_dl import YoutubeDL
+import yt_dlp as youtube_dl
+from yt_dlp import YoutubeDL 
 import lyricsgenius
-from db import BeauPlDb
 
 
 def make_embed(text, title=""):
@@ -30,8 +28,6 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 #####################
 maintain_mode = True
 #####################
-
-db = BeauPlDb()
 
 genius = lyricsgenius.Genius(
     'nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
@@ -289,8 +285,6 @@ class Music(commands.Cog):
         search: str
             Tên bài hát, ID, hoặc URL
         """
-        await ctx.trigger_typing()
-
         vc = ctx.voice_client
 
         if not vc:
@@ -482,7 +476,7 @@ class Music(commands.Cog):
             embed = discord.Embed(title=f'{ctx.guild.name}', description=fmt,
                                   color=discord.Color.from_rgb(255, 165, 158))
         embed.set_footer(text=f"{ctx.author.display_name}",
-                         icon_url=ctx.author.avatar_url)
+                         icon_url=ctx.author.avatar.url)
 
         await ctx.send(embed=embed)
 
@@ -516,7 +510,7 @@ class Music(commands.Cog):
         embed = discord.Embed(title="",
                               description=f"[{vc.source.title}]({vc.source.web_url}) | `{duration}` `Thêm bởi: {vc.source.requester.name}`",
                               color=discord.Color.from_rgb(255, 165, 158))
-        embed.set_author(icon_url=self.bot.user.avatar_url, name=f"Đang phát")
+        embed.set_author(icon_url=self.bot.user.avatar.url, name=f"Đang phát")
         await ctx.send(embed=embed)
 
     @commands.command(name='volume', aliases=['vol', 'v'], description="thay đổi âm lượng")
@@ -656,76 +650,19 @@ class Image(commands.Cog):
         data = response.json()
         await ctx.send(data['message'])
 
-
-class Game(commands.Cog):
-    @commands.command(name='tft', description="lối lên trang bị ĐTCL")
-    async def tft_(self, ctx, champion: str):
-        """Tra cứu lối lên trang bị ĐTCL."""
-        url = 'https://app.mobalytics.gg/tft/champions/' + \
-            champion.replace(' ', '-')
-
-        page = requests.get(url)
-
-        soup = BeautifulSoup(page.content, 'html.parser')
-
-        results = soup.find_all('div', class_='m-lff1ls elh7uow9')
-        if len(results) != 0:
-            for item in results:
-                embed = discord.Embed(title=item.find(
-                    'p', class_='m-zow6u1 elh7uow4').text)
-                embed.set_thumbnail(url=item.find('img').get('src'))
-                await ctx.send(embed=embed)
-        else:
-            await ctx.send(f'Có cc mà {champion}')
-
-
-class Playlist(commands.Cog):
-    @commands.command(name='playlist', aliases=['pl'], description="Thao tác Playlist")
-    async def playlist(self, ctx):
-        """Thao tác Playlist."""
-        pls = db.get_playlist(ctx.guild.id)
-        if pls:
-            fmt = '\n'.join(
-                f"`pid:{(_[0])}` `{_[1]}` | được `{_[-1]}` tạo ngày `{_[3]}`"
-                for _ in pls)
-            await ctx.send(embed=make_embed(fmt, title=f'Playlist đã tạo của {ctx.guild.name}'))
-
-        else:
-            await ctx.send(embed=make_embed('Ko có mẹ gì hết'))
-
-    @commands.command(name='playlist_add', aliases=['pladd'], description="Tạo playlist mới")
-    async def playlist_add(self, ctx, *, pname):
-        """Thêm playlist."""
-        status = db.add_playlist(pname, ctx.guild.id, ctx.author.name)
-        if status:
-            await ctx.send(embed=make_embed(f'Tạo "{pname}" rùi nhá'))
-        else:
-            await ctx.send(embed=make_embed('Lỗi mẹ nó rồi nhá'))
-
-    @commands.command(name='playlist_rm', aliases=['plrm'], description="Xoá playlist")
-    async def playlist_rm(self, ctx, *, pid):
-        """Xoá playlist."""
-        status = db.rm_playlist(pid)
-        if status:
-            await ctx.send(embed=make_embed(f'Đã xoá pid = {pid}"'))
-        else:
-            await ctx.send(embed=make_embed('Lỗi mẹ nó rồi nhá'))
-
 #############################################################################################
 
 
-def setup(bot):
-    bot.add_cog(Image(bot))
-    bot.add_cog(Music(bot))
-    bot.add_cog(Playlist(bot))
-    bot.add_cog(Game(bot))
+async def setup(bot):
+    await bot.add_cog(Image(bot))
+    await bot.add_cog(Music(bot))
 
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
-                   description='Các lệnh cơ bản')
+                   description='Các lệnh cơ bản', intents=discord.Intents.all())
 
 
-@bot.event
+@ bot.event
 async def on_ready():
     if maintain_mode:
         await bot.change_presence(status=discord.Status.do_not_disturb, activity=discord.Activity(type=discord.ActivityType.listening, name="Đang nâng cấp :("))
@@ -734,5 +671,6 @@ async def on_ready():
     print("Bot is ready!")
 
 
-setup(bot)
-bot.run('NjgzNjQ2MzE4MzE2NjE3NzU4.Gv7ha9.6RPmbxoISolSaFhyyv_mUW4EGqtet3vWLhFew8')
+
+asyncio.run(setup(bot))
+bot.run(os.environ['TOKEN'])
