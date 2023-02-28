@@ -25,7 +25,7 @@ def make_embed(text, title=""):
 youtube_dl.utils.bug_reports_message = lambda: ''
 
 #####################
-maintain_mode = True
+maintain_mode = False
 #####################
 
 genius = lyricsgenius.Genius(
