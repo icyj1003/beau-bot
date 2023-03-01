@@ -605,8 +605,6 @@ class Music(commands.Cog):
 
             if msg.content != '0':
 
-                await ctx.trigger_typing()
-
                 vc = ctx.voice_client
 
                 if not vc:
