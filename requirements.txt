@@ -1,5 +1,4 @@
 discord
 PyNaCl
-lyricsgenius
 youtube-search-python
 https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz

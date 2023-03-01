@@ -10,9 +10,7 @@ import traceback
 from async_timeout import timeout
 from functools import partial
 import yt_dlp as youtube_dl
-from yt_dlp import YoutubeDL 
-import lyricsgenius
-
+from yt_dlp import YoutubeDL
 
 def make_embed(text, title=""):
     return discord.Embed(title=title,
@@ -27,9 +25,6 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 #####################
 maintain_mode = False
 #####################
-
-genius = lyricsgenius.Genius(
-    'nyUuLcrHR6mi-g1L7vifIvNNaSoo_TOsHTVhPdCA63anhAuICQGcHPHHOaedq5jQ')
 
 ytdlopts = {
     'format': 'bestaudio/best',
@@ -562,19 +557,6 @@ class Music(commands.Cog):
         await ctx.send(embed=embed)
         await self.cleanup(ctx.guild)
 
-    @commands.command(name='lyrics', description="lời bài hát")
-    async def lyrics_(self, ctx, *, search=None):
-        """Tìm lời bài hát."""
-        if search != None:
-            song = genius.search_song(title=search)
-            embed = discord.Embed(title=song.title, description=song.lyrics,
-                                  color=discord.Color.from_rgb(255, 165, 158))
-            await ctx.send(embed=embed)
-        else:
-            embed = discord.Embed(description='Nhập vô tên bài hát đi nào! ( つ´∀｀)つ ',
-                                  color=discord.Color.from_rgb(255, 165, 158))
-            await ctx.send(embed=embed)
-
     @commands.command(name='search', description="tìm bài hát trên youtube")
     async def search_(self, ctx, *, query=None):
         """Tìm kiếm trên Youtube."""
@@ -661,13 +643,13 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"),
 
 @ bot.event
 async def on_ready():
-    if maintain_mode:
-        await bot.change_presence(status=discord.Status.do_not_disturb, activity=discord.Activity(type=discord.ActivityType.listening, name="Đang nâng cấp :("))
-    else:
-        await bot.change_presence(status=discord.Status.online, activity=discord.Activity(type=discord.ActivityType.watching, name="Batman: Vengeance"))
+    await bot.change_presence(activity=discord.Game(name="VALORANT", ))
     print("Bot is ready!")
 
-
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send(f"```Không có command nào tên {ctx.message.content}```")
 
 asyncio.run(setup(bot))
 bot.run(os.environ['TOKEN'])
