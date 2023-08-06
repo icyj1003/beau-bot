@@ -1,0 +1,10 @@
+version: '3'
+
+name: "beau"
+
+services:
+  bot:
+    build: beau
+    container_name: bot
+    environment:
+      - DISCORD_TOKEN=NjgzNjQ2MzE4MzE2NjE3NzU4.GFwluc.szchF_DqQWM9S4PrZUfX3npJ4yJJMiDxqvu2cQ
