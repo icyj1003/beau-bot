@@ -1,10 +1,13 @@
 import asyncio
+import json
 
 import discord
 import yt_dlp as youtube_dl
 from discord.ext import commands
 from tabulate import tabulate
 from youtube_search import YoutubeSearch
+from repo import BeauRepo
+import os
 
 
 def song_from_query(query, max_results=1):
@@ -18,6 +21,8 @@ def song_from_query(query, max_results=1):
 
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ""
+json_serializer = lambda x: json.dumps(x).encode("utf8")
+json_deserializer = lambda x: json.loads(x.decode("utf8"))
 
 
 ytdl_format_options = {
@@ -47,7 +52,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         super().__init__(source, volume)
 
         self.data = data
-
         self.title = data.get("title")
         self.url = data.get("url")
 
@@ -68,25 +72,34 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.queue = {}
-        self.loop = False
+        self.np_song = None
+        self.repo = BeauRepo()
 
     @commands.Cog.listener()
     async def on_ready(self):
         for guild in self.bot.guilds:
-            self.queue[guild.id] = []
+            try:
+                self.repo.init(guild.id, guild.name)
+            except Exception as e:
+                print(e)
 
     async def add_to_queue(self, ctx, song):
-        self.queue[ctx.guild.id].append(song)
-
-        await ctx.send("```Added {} to queue```".format(song["title"]))
-
+        try:
+            self.repo.add_song(ctx.guild.id, song)
+            await ctx.send("```Added {} to queue```".format(song["title"]))
+        except Exception as e:
+            await ctx.send(
+                "```Failed to add {} to queue. {}```".format(song["title"], e)
+            )
         if not ctx.voice_client.is_playing():
             await self.play_next(ctx)
 
     async def play_next(self, ctx, destroy=False):
-        if len(self.queue[ctx.guild.id]) > 0:
-            url = "https://www.youtube.com" + self.queue[ctx.guild.id][0]["url_suffix"]
+        if self.repo.length(ctx.guild.id) > 0:
+            song = self.repo.get_song(ctx.guild.id, 0)
+            self.np_song = song
+            url = "https://www.youtube.com" + song["url_suffix"]
+
             player = await YTDLSource.from_url(
                 url,
                 loop=self.bot.loop,
@@ -98,12 +111,10 @@ class Music(commands.Cog):
                 after=lambda e: self.bot.loop.create_task(self.play_next(ctx)),
             )
 
-            await ctx.send(
-                "```Now playing: {}```".format(self.queue[ctx.guild.id][0]["title"])
-            )
+            await ctx.send("```Now playing: {}```".format(song["title"]))
 
-            if self.loop == False:
-                self.queue[ctx.guild.id].pop(0)
+            if not self.repo.is_loop(ctx.guild.id):
+                self.repo.remove_song(ctx.guild.id, 0)
 
     @commands.command(aliases=["l"])
     async def loop(self, ctx):
@@ -111,17 +122,18 @@ class Music(commands.Cog):
         Loops the current song
         """
         if ctx.voice_client:
-            self.loop = not self.loop
-            await ctx.send("```Looping is {}```".format("on" if self.loop else "off"))
+            is_loop = self.repo.trigger_loop(ctx.guild.id)
+            await ctx.send("```Looping is {}```".format("on" if is_loop else "off"))
         else:
             await ctx.send("```I'm not in a voice channel```")
-    
-    @commands.command(aliases=["v"])
+
+    @commands.command(aliases=["v", "vol"])
     async def volume(self, ctx, volume: int):
         """
         Changes the player's volume
         """
         if ctx.voice_client:
+            self.repo.set_volume(ctx.guild.id, volume)
             ctx.voice_client.source.volume = volume / 100
             await ctx.send("```Changed volume to {}%```".format(volume))
         else:
@@ -156,7 +168,8 @@ class Music(commands.Cog):
         Shows the current queue
         """
         if ctx.voice_client:
-            if len(self.queue[ctx.guild.id]) > 0:
+            playlist = self.repo.get_playlist(ctx.guild.id)
+            if len(playlist) > 0:
                 queue_info = [
                     {
                         "-": i + 1,
@@ -165,7 +178,7 @@ class Music(commands.Cog):
                         else q["title"][:50] + " ...",
                         "Duration": q["duration"],
                     }
-                    for i, q in enumerate(self.queue[ctx.guild.id])
+                    for i, q in enumerate(playlist)
                 ]
 
                 table = "```Queue of {}\n\n{}```".format(
@@ -188,16 +201,12 @@ class Music(commands.Cog):
         Removes a song from the queue
         """
         if ctx.voice_client:
-            if len(self.queue[ctx.guild.id]) > 0:
-                if index > 0 and index <= len(self.queue[ctx.guild.id]):
-                    song = self.queue[ctx.guild.id].pop(index - 1)
-                    await ctx.send("```Removed {} from queue```".format(song["title"]))
-                    await self.show_queue(ctx)
-
-                else:
-                    await ctx.send("```Invalid index```")
-            else:
-                await ctx.send("```Queue is empty```")
+            try:
+                self.repo.remove_song(ctx.guild.id, index - 1)
+                await ctx.send("```Removed song at index {}```".format(index))
+                await self.show_queue(ctx)
+            except Exception as e:
+                await ctx.send("```Failed to remove song. {}```".format(e))
         else:
             await ctx.send("```I'm not in a voice channel```")
 
@@ -207,10 +216,11 @@ class Music(commands.Cog):
         Moves a song up in the queue
         """
         if ctx.voice_client:
-            if len(self.queue[ctx.guild.id]) > 0:
-                if index > 1 and index <= len(self.queue[ctx.guild.id]):
-                    song = self.queue[ctx.guild.id].pop(index - 1)
-                    self.queue[ctx.guild.id].insert(index - 2, song)
+            playlist = self.repo.get_playlist(ctx.guild.id)
+            if len(playlist) > 0:
+                if index > 1 and index <= len(playlist):
+                    song = self.repo.get_song(ctx.guild.id, index - 1)
+                    self.repo.move_song_up(ctx.guild.id, index - 1)
                     await ctx.send("```Moved {} up```".format(song["title"]))
                     await self.show_queue(ctx)
 
@@ -227,42 +237,32 @@ class Music(commands.Cog):
         Swaps two songs in the queue
         """
         if ctx.voice_client:
-            if len(self.queue[ctx.guild.id]) > 0:
-                if index1 > 0 and index1 <= len(self.queue[ctx.guild.id]):
-                    if index2 > 0 and index2 <= len(self.queue[ctx.guild.id]):
-                        song1 = self.queue[ctx.guild.id][index1 - 1]
-                        song2 = self.queue[ctx.guild.id][index2 - 1]
-                        self.queue[ctx.guild.id][index1 - 1] = song2
-                        self.queue[ctx.guild.id][index2 - 1] = song1
-                        await ctx.send(
-                            "```Swapped {} and {}```".format(
-                                song1["title"], song2["title"]
-                            )
-                        )
-                        await self.show_queue(ctx)
-
-                    else:
-                        await ctx.send("```Invalid index 2```")
-
-                else:
-                    await ctx.send("```Invalid index 1```")
+            playlist = self.repo.get_playlist(ctx.guild.id)
+            if len(playlist) > 0:
+                song1 = self.repo.get_song(ctx.guild.id, index1 - 1)
+                song2 = self.repo.get_song(ctx.guild.id, index1 - 1)
+                self.repo.swap_songs(ctx.guild.id, index1 - 1, index2 - 1)
+                await ctx.send(
+                    "```Swapped {} and {}```".format(song1["title"], song2["title"])
+                )
+                await self.show_queue(ctx)
             else:
                 await ctx.send("```Queue is empty```")
         else:
             await ctx.send("```I'm not in a voice channel```")
 
-    @commands.command(alises=["del", "cls", "c"])
+    @commands.command()
     async def clear(self, ctx):
         """
         Clears the queue
         """
         if ctx.voice_client:
-            self.queue[ctx.guild.id] = []
+            self.repo.clear_playlist(ctx.guild.id)
             await ctx.send("```Queue cleared```")
         else:
             await ctx.send("```I'm not in a voice channel```")
 
-    @commands.command(alises=["s"])
+    @commands.command()
     async def search(self, ctx, *query):
         """
         Searches youtube for a song
@@ -345,31 +345,27 @@ class Music(commands.Cog):
                 await ctx.voice_client.move_to(ctx.author.voice.channel)
         else:
             await ctx.send("```You are not in a voice channel```")
-    
+
     @commands.command(alises=["np"])
     async def now_playing(self, ctx):
         """
         Shows the current song
         """
         if ctx.voice_client:
-            if len(self.queue[ctx.guild.id]) > 0:
-                await ctx.send(
-                    "```Now playing: {}```".format(
-                        self.queue[ctx.guild.id][0]["title"]
-                    )
-                )
+            if self.np_song:
+                await ctx.send("```Now playing: {}```".format(self.np_song["title"]))
             else:
-                await ctx.send("```Queue is empty```")
+                await ctx.send("```Nothing is playing```")
         else:
             await ctx.send("```I'm not in a voice channel```")
 
-    @commands.command(alises=["l"])
+    @commands.command()
     async def leave(self, ctx):
         """
         Leaves the voice channel
         """
         if ctx.voice_client:
-            self.queue[ctx.guild.id] = []
+            self.repo.clear_playlist(ctx.guild.id)
             await ctx.voice_client.disconnect()
         else:
             await ctx.send("```I'm not in a voice channel```")

@@ -9,6 +9,8 @@ RUN apt-get -y update
 RUN apt-get update && apt-get install -y ffmpeg
 
 WORKDIR /app
+
+COPY repo.py /app
 COPY functional.py /app
 COPY main.py /app
 COPY music.py /app
